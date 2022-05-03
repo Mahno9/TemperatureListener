@@ -1,13 +1,12 @@
 import win32api
-import win32con
 import win32gui
 import time
 import ctypes
-from ctypes import wintypes, windll, byref
+from ctypes import wintypes
 
 
 def GetClickPosition() -> ((int, int), (int, int)):
-    state_left = win32api.GetKeyState(0x01)  # Left button down = 0 or 1. Button up = -127 or -128
+    state_left = win32api.GetKeyState(0x01)
     returnValues = []
     while True:
         a = win32api.GetKeyState(0x01)
@@ -41,7 +40,7 @@ def GetChildsHWDNList(hwndParent: ctypes.wintypes.HWND):
     return childsHWNDList
 
 
-def requestLabelNumber(childsHWND):
+def RequestLabelNumber(childsHWND):
     i = 0
     for childHWND in childsHWND:
         print("{}: Subwindow text: {}".format(i, win32gui.GetWindowText(childHWND)))
@@ -49,18 +48,29 @@ def requestLabelNumber(childsHWND):
     return input("Type a number of the label you want listen to: ")
 
 
-def main():
-    clickedWindowHWND = FindWindowByClick()
-    print("Clicked widnow HWND: {}".format(hex(clickedWindowHWND)))
-    print("Clicked widnow Title: {}".format(win32gui.GetWindowText(clickedWindowHWND)))
+def GetParentWindowHWDN():
+    while (True):
+        print("Click to any window to find labes in it.")
+        clickedWindowHWND = FindWindowByClick()
+        print("Clicked widnow HWND: {}".format(hex(clickedWindowHWND)))
+        print("Clicked widnow Title: {}".format(win32gui.GetWindowText(clickedWindowHWND)))
 
-    childs = GetChildsHWDNList(clickedWindowHWND)
-    if len(childs) == 0:
+        answer = input("Is this proper window? Y[es]/N[o]")
+        if any(answer in s for s in ['Yes', 'yes', 'Y', 'y', '', '\n']):
+            return clickedWindowHWND
+
+
+def main():
+    clickedWindowHWND = GetParentWindowHWDN()
+
+    children = GetChildsHWDNList(clickedWindowHWND)
+    if len(children) == 0:
         print("Unable to find any subwindows for this window :(")
         return
 
-    listenLabelNumber = requestLabelNumber(childs)
-    print("Listen label number: {}".format(listenLabelNumber))
+    listenLabelNumber = RequestLabelNumber(children)
+    print("\nListen label number is {}".format(listenLabelNumber))
+
 
 
 if __name__ == '__main__':

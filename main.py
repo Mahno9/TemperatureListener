@@ -1,8 +1,14 @@
+import random
+
 import win32api
 import win32gui
 import time
 import ctypes
 from ctypes import wintypes
+import threading
+import sys
+
+import xlsxwriter
 
 
 def GetClickPosition() -> ((int, int), (int, int)):
@@ -60,6 +66,28 @@ def GetParentWindowHWDN():
             return clickedWindowHWND
 
 
+def StartLabelStatusListening(listenHWND, pollingInterval):
+    data = []
+    needStopThread = False
+
+    def grabFunc():
+        import time
+        startTime = time.time()
+        while not needStopThread:
+            timePassed = time.time() - startTime
+            value = win32gui.GetWindowText(listenHWND)
+            data.append((timePassed, value))
+            print(timePassed, value)
+            time.sleep(pollingInterval)
+
+    thread = threading.Thread(target=grabFunc)
+    thread.start()
+    sys.stdin.read(1)
+    needStopThread = True
+    thread.join()
+    return data
+
+
 def main():
     clickedWindowHWND = GetParentWindowHWDN()
 
@@ -68,9 +96,35 @@ def main():
         print("Unable to find any subwindows for this window :(")
         return
 
-    listenLabelNumber = RequestLabelNumber(children)
-    print("\nListen label number is {}".format(listenLabelNumber))
+    listenLabelIdx = RequestLabelNumber(children)
+    print("\nListen label number is {}".format(listenLabelIdx))
 
+    listenHWND = children[listenLabelIdx]
+    pollingInterval = input("Please specify polling interval in sec (default: 0.1): ")
+    if pollingInterval == '':
+        pollingInterval = 0.1
+    else:
+        pollingInterval = float(pollingInterval)
+
+    data = StartLabelStatusListening(listenHWND, pollingInterval)
+    DumpDataToXlsx(data)
+
+
+def DumpDataToXlsx(data, outFilename=None):
+    if len(data) == 0:
+        print("Nothing to export.")
+        return
+
+    if outFilename is None:
+        outFilename = 'Result.xlsx'
+
+    workbook = xlsxwriter.Workbook(outFilename)
+    worksheet = workbook.worksheets()[0] if len(workbook.worksheets()) > 0 else workbook.add_worksheet()
+    for i in range(len(data[0])):
+        worksheet.write_column(0, i, [''] * (len(data) + 1))
+        columnData = list(zip(*data))[i]
+        worksheet.write_column(0, i, columnData)
+    workbook.close()
 
 
 if __name__ == '__main__':

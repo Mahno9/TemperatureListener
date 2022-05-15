@@ -46,12 +46,12 @@ def GetChildsHWDNList(hwndParent: ctypes.wintypes.HWND):
     return childsHWNDList
 
 
-def RequestLabelNumber(childsHWND):
+def RequestLabelNumber(childsHWND) -> int:
     i = 0
     for childHWND in childsHWND:
         print("{}: Subwindow text: {}".format(i, win32gui.GetWindowText(childHWND)))
         i += 1
-    return input("Type a number of the label you want listen to: ")
+    return int(input("Type a number of the label you want listen to: "))
 
 
 def GetParentWindowHWDN():
